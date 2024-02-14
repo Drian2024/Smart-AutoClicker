@@ -76,33 +76,62 @@ class EventsEditor(
         updateList(newEvents)
     }
 
-    private fun onEditedEventConditionsUpdated(conditions: List<Condition>) {
-        val editedEvent = editedItem.value ?: return
+private fun onEditedEventConditionsUpdated(conditions: List<Condition>) {
+    val editedEvent = editedItem.value ?: return
 
-        actionsEditor.editedList.value?.let { actions ->
-            val newActions = actions.toMutableList()
-            actions.forEach { action ->
-                when {
-                    // Skip all actions but clicks
-                    action !is Action.Click -> return@forEach
-                    // Nothing to do on user selected position
-                    action.positionType == Action.Click.PositionType.USER_SELECTED -> return@forEach
-                    // Condition was referenced and used by an action, delete it
-                    editedEvent.conditionOperator == AND && conditions.find { action.clickOnConditionId == it.id } == null ->
-                        newActions.remove(action)
-                    // Condition was referenced but not used by an action, delete the reference
-                    editedEvent.conditionOperator == OR && action.clickOnConditionId != null ->
-                        newActions[newActions.indexOf(action)] = action.copy(clickOnConditionId = null)
-                }
+    actionsEditor.editedList.value?.let { actions ->
+        val newActions = actions.toMutableList()
+
+        for (condition in conditions) {
+            // Skip conditions that already have a corresponding clicking action
+            if (editedEvent.conditionOperator == OR && newActions.any { it is Action.Click && it.clickOnConditionId == condition.id }) {
+                continue
             }
 
-            actionsEditor.updateList(newActions)
+            // Perform the clicking logic based on conditions
+            val conditionMet = checkIfConditionMet(condition.id, conditions)
+
+            // Add clicking action for the condition if it's met
+            if (conditionMet) {
+                newActions.add(Action.Click(/* Your click parameters */, clickOnConditionId = condition.id))
+            }
         }
 
-        editedItem.value?.let { event ->
-            updateEditedItem(event.copy(conditions = conditions))
-        }
+        actionsEditor.updateList(newActions)
     }
+
+    editedItem.value?.let { event ->
+        updateEditedItem(event.copy(conditions = conditions))
+    }
+}
+
+private fun checkIfConditionMet(conditionId: String?, conditions: List<Condition>): Boolean {
+    // Add your logic here to check if the condition is met
+    // For example, check if the conditionId exists in the list of conditions
+    return conditionId?.let { id ->
+        conditions.any { it.id == id }
+    } ?: false
+}
+
+
+private fun checkIfConditionMet(conditionId: String?, conditions: List<Condition>): Boolean {
+    // Add your logic here to check if the condition is met
+    // For example, check if the conditionId exists in the list of conditions
+    return conditionId?.let { id ->
+        conditions.any { it.id == id }
+    } ?: false
+}
+
+
+private fun checkIfConditionMet(conditionId: String?, conditions: List<Condition>): Boolean {
+    // Add your logic here to check if the condition is met
+    // For example, check if the conditionId exists in the list of conditions
+    return conditionId?.let { id ->
+        conditions.any { it.id == id }
+    } ?: false
+}
+
+
 
     private fun onEditedEventActionsUpdated(actions: List<Action>) {
         editedItem.value?.let { event ->
